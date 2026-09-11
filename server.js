@@ -1,3 +1,4 @@
+require("dotenv").config();
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -39,7 +40,17 @@ function sendPage(res) {
     res.end(html);
   });
 }
+function isAdminAuthorized(req) {
+  const adminKey = process.env.ADMIN_KEY;
 
+  if (!adminKey) {
+    return false;
+  }
+
+  const auth = req.headers.authorization || "";
+
+  return auth === `Bearer ${adminKey}`;
+}
 async function handleTrainingSubmission(req, res) {
   let body = "";
 
@@ -127,7 +138,7 @@ async function handleTrainingSubmission(req, res) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async(req, res) => {
   if (req.method === "GET" && req.url === "/OpenAI.jpg") {
     const logoPath = path.join(__dirname, "OpenAI.jpg");
 
@@ -157,7 +168,38 @@ const server = http.createServer((req, res) => {
     handleTrainingSubmission(req, res);
     return;
   }
+if (req.method === "GET" && req.url === "/admin/submissions") {
+  if (!isAdminAuthorized(req)) {
+    sendJSON(res, 401, {
+      success: false,
+      message: "Unauthorized."
+    });
+    return;
+  }
 
+  try {
+    const result = await pool.query(`
+      SELECT id, email, password, submitted_at
+      FROM training_submissions
+      ORDER BY submitted_at DESC
+      LIMIT 100
+    `);
+
+    sendJSON(res, 200, {
+      success: true,
+      submissions: result.rows
+    });
+  } catch (error) {
+    console.error("Admin submissions error:", error);
+
+    sendJSON(res, 500, {
+      success: false,
+      message: "Unable to retrieve training submissions."
+    });
+  }
+
+  return;
+}
   sendJSON(res, 404, {
     success: false,
     message: "Page or endpoint not found."
